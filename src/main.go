@@ -33,7 +33,6 @@ func readFiles(root string) (bool, error) {
 				return moveDefault(path, info)
 			}
 		}
-
 		return nil
 	})
 
