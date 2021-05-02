@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,8 +14,8 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-const imagesFolderTo = "E:\\OneDrive\\Imágenes\\Álbum de cámara"
-const imagesFolderFrom = "E:\\OneDrive\\Imágenes\\Overon"
+const imagesFolderTo = "E:\\iCloud\\Imágenes\\Álbum de cámara"
+const imagesFolderFrom = "C:\\Users\\sirio\\iCloudPhotos\\Photos"
 
 func readFiles(root string) (bool, error) {
 	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
@@ -146,7 +147,7 @@ func getYearMonthFromFilePath(path string) (string, string, error) {
 	re := regexp.MustCompile(`(\d{4})(\d{2})(\d{2})`)
 	matchs := re.FindStringSubmatch(fileName)
 	if len(matchs) < 4 {
-		return "", "", errors.New("Year and month not found in file path")
+		return "", "", errors.New("year and month not found in file path")
 	}
 
 	return matchs[1], matchs[2], nil
@@ -188,12 +189,36 @@ func moveFile(fname string, year string, month string) (bool, error) {
 	}
 	newLocation := newDir + fileName
 	fmt.Println(newLocation)
-	err = os.Rename(fname, newLocation)
+	err = copy(fname, newLocation)
 	if err != nil {
 		return false, err
 	}
 
 	return true, nil
+}
+
+func copy(sourcePath, destPath string) error {
+	inputFile, err := os.Open(sourcePath)
+	if err != nil {
+		return fmt.Errorf("couldn't open source file: %s", err)
+	}
+	outputFile, err := os.Create(destPath)
+	if err != nil {
+		inputFile.Close()
+		return fmt.Errorf("couldn't open dest file: %s", err)
+	}
+	defer outputFile.Close()
+	_, err = io.Copy(outputFile, inputFile)
+	inputFile.Close()
+	if err != nil {
+		return fmt.Errorf("writing to output file failed: %s", err)
+	}
+	// The copy was successful, so now delete the original file
+	err = os.Remove(sourcePath)
+	if err != nil {
+		return fmt.Errorf("failed removing original file: %s", err)
+	}
+	return nil
 }
 
 func main() {
